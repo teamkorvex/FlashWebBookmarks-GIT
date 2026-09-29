@@ -1,4 +1,5 @@
-const { app, BrowserWindow } = require('electron');
+const path = require('node:path');
+const { app, BrowserWindow, Menu } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
 let mainWindow;
@@ -7,6 +8,8 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
+        icon: path.join(__dirname, 'flashlogo.ico'),
+        autoHideMenuBar: app.isPackaged,
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
@@ -39,6 +42,7 @@ app.on('web-contents-created', (_event, contents) => {
 });
 
 app.whenReady().then(() => {
+    if (app.isPackaged) Menu.setApplicationMenu(null);
     createWindow();
     if (app.isPackaged) {
         autoUpdater.checkForUpdatesAndNotify().catch(error => {

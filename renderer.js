@@ -1,4 +1,10 @@
 // Global Application State
+const profileInitializedKey = 'flash_profile_initialized';
+if (localStorage.getItem(profileInitializedKey) !== 'true') {
+    localStorage.clear();
+    localStorage.setItem(profileInitializedKey, 'true');
+}
+
 let urls = [];
 try {
     const storedUrls = JSON.parse(localStorage.getItem('flash_urls') || '[]');
@@ -138,6 +144,7 @@ function switchTab(tabName) {
     }
     if (tabName === 'browser') {
         updateBrowserControls();
+        updateBrowserPrivacyBlur();
     }
     if (tabName === 'settings') {
         updateStorageStats();
@@ -158,6 +165,7 @@ function saveUrl() {
     
     urls.push({ id: Date.now(), name, link, tags });
     localStorage.setItem('flash_urls', JSON.stringify(urls));
+    updateBrowserPrivacyBlur();
 
     document.getElementById('url-name').value = '';
     document.getElementById('url-link').value = '';
@@ -223,6 +231,7 @@ function deleteUrl(id) {
         urls = urls.filter(item => item.id !== id);
         localStorage.setItem('flash_urls', JSON.stringify(urls));
         renderBookmarks();
+        updateBrowserPrivacyBlur();
     }
 }
 
@@ -253,7 +262,7 @@ function renderBookmarks() {
 
     filtered.forEach(item => {
         const tags = Array.isArray(item.tags) ? item.tags.filter(tag => typeof tag === 'string') : [];
-        const isNsfw = tags.some(t => t.toLowerCase() === 'nsfw' || t.toLowerCase() === 'hidden');
+        const isNsfw = isNsfwBookmark(item);
         
         const card = document.createElement('div');
         const blurClass = (privacyBlurActive && isNsfw) ? 'privacy-blur' : '';
@@ -339,6 +348,34 @@ function togglePrivacyBlur() {
     }
 
     renderBookmarks();
+    updateBrowserPrivacyBlur();
+}
+
+function isNsfwBookmark(item) {
+    const tags = Array.isArray(item.tags) ? item.tags : [];
+    return tags.some(tag => typeof tag === 'string' && ['nsfw', 'hidden'].includes(tag.toLowerCase()));
+}
+
+function updateBrowserPrivacyBlur() {
+    const markedHosts = new Set();
+    if (privacyBlurActive) {
+        urls.filter(isNsfwBookmark).forEach(item => {
+            try {
+                markedHosts.add(new URL(item.link).hostname);
+            } catch {}
+        });
+    }
+
+    browserTabs.forEach(tab => {
+        let host = '';
+        try {
+            host = new URL(tab.url).hostname;
+        } catch {}
+        const isMarkedHost = host && Array.from(markedHosts).some(markedHost =>
+            host === markedHost || host.endsWith(`.${markedHost}`) || markedHost.endsWith(`.${host}`)
+        );
+        tab.webview.classList.toggle('privacy-blur', Boolean(isMarkedHost));
+    });
 }
 
 function recordHotkey(event) {
@@ -467,6 +504,7 @@ function createBrowserTab(targetUrl = 'about:blank') {
     ['did-navigate', 'did-navigate-in-page'].forEach(eventName => {
         webview.addEventListener(eventName, () => {
             tab.url = webview.getURL();
+            updateBrowserPrivacyBlur();
             if (activeBrowserTabId === id) {
                 document.getElementById('browser-url-input').value = tab.url;
                 updateBrowserControls();
@@ -495,6 +533,7 @@ function selectBrowserTab(id) {
     renderBrowserTabs();
     switchTab('browser');
     updateBrowserControls();
+    updateBrowserPrivacyBlur();
 }
 
 function closeBrowserTab(id) {

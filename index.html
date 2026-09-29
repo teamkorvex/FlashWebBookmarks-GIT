@@ -38,7 +38,7 @@
         }
         /* Privacy Blur Class */
         .privacy-blur {
-            filter: blur(12px) !important;
+            filter: blur(20px) !important;
             user-select: none;
             pointer-events: none;
             transition: filter 0.2s ease;
@@ -69,9 +69,7 @@
     <!-- 1. PIN Lock Screen -->
     <div id="pin-screen" class="fixed inset-0 z-50 bg-[#0a0a0c]/90 backdrop-blur-xl flex flex-col items-center justify-center p-4 animate-fade-in">
         <div class="bg-[#121217] border border-[#22222c] p-7 rounded-2xl w-full max-w-sm flex flex-col items-center shadow-2xl transition-all duration-300">
-            <div class="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-5">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
+            <img src="flashlogo.png" alt="Flash" class="w-12 h-12 object-contain mb-4">
             <h2 class="text-base font-semibold text-white mb-1">Welcome back</h2>
             <p class="text-xs text-gray-400 mb-6 text-center">Enter your PIN to continue.</p>
             
@@ -86,9 +84,7 @@
     <!-- 2. Onboarding Screen (First-time setup) -->
     <div id="onboard-screen" class="fixed inset-0 z-50 bg-[#0a0a0c]/90 backdrop-blur-xl flex flex-col items-center justify-center p-4 hidden animate-fade-in">
         <div class="bg-[#121217] border border-[#22222c] p-7 rounded-2xl w-full max-w-md shadow-2xl transition-all duration-300">
-            <div class="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-4 shadow-inner">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
+            <img src="flashlogo.png" alt="Flash" class="w-14 h-14 object-contain mb-4">
             
             <!-- Step 1 -->
             <div id="onboard-step-1">
@@ -126,9 +122,7 @@
         <!-- Navigation Header -->
         <nav id="nav-menu" class="hidden flex items-center justify-between px-6 py-3 border-b border-[#22222c] bg-[#121217]/70 backdrop-blur-xl sticky top-0 z-40 transition-all">
             <div class="flex items-center space-x-2">
-                <div class="w-7 h-7 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                </div>
+                <img src="flashlogo.png" alt="Flash" class="w-7 h-7 object-contain">
                 <span class="text-xs font-bold tracking-wider text-white uppercase">Flash</span>
             </div>
             <div class="flex items-center space-x-1 bg-[#0a0a0c] p-1 border border-[#22222c] rounded-xl">
@@ -156,16 +150,6 @@
                 <div>
                     <h1 class="text-sm font-bold text-white tracking-tight">Flash Feed & News</h1>
                     <p class="text-[11px] text-gray-400">Your custom dashboard feed, tech updates, and quick widgets.</p>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="openBrowser('https://news.ycombinator.com')" class="bg-[#121217] hover:bg-[#1a1a22] border border-[#22222c] text-xs text-gray-200 px-3.5 py-2 rounded-xl transition-all flex items-center space-x-1.5 active:scale-95">
-                        <svg class="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
-                        <span>Hacker News</span>
-                    </button>
-                    <button onclick="openBrowser('https://github.com/trending')" class="bg-[#121217] hover:bg-[#1a1a22] border border-[#22222c] text-xs text-gray-200 px-3.5 py-2 rounded-xl transition-all flex items-center space-x-1.5 active:scale-95">
-                        <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-                        <span>GitHub Trending</span>
-                    </button>
                 </div>
             </div>
 
