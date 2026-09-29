@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flash</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for clean dark mode aesthetic */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #22222c;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2a2a36;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        /* Privacy Blur Class */
+        .privacy-blur {
+            filter: blur(12px) !important;
+            user-select: none;
+            pointer-events: none;
+            transition: filter 0.2s ease;
+        }
+        #view-browser {
+            height: calc(100vh - 56px);
+            min-height: 360px;
+        }
+        #browser-webviews,
+        #browser-webviews webview {
+            width: 100%;
+            height: 100%;
+        }
+        #browser-webviews webview {
+            display: none;
+        }
+        #browser-webviews webview.active {
+            display: flex;
+        }
+        .browser-tab.active {
+            background: #22222c;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-[#0a0a0c] text-gray-100 min-h-screen selection:bg-blue-500 selection:text-white">
+
+    <!-- 1. PIN Lock Screen -->
+    <div id="pin-screen" class="fixed inset-0 z-50 bg-[#0a0a0c]/90 backdrop-blur-xl flex flex-col items-center justify-center p-4 animate-fade-in">
+        <div class="bg-[#121217] border border-[#22222c] p-7 rounded-2xl w-full max-w-sm flex flex-col items-center shadow-2xl transition-all duration-300">
+            <div class="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-5">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <h2 class="text-base font-semibold text-white mb-1">Welcome back</h2>
+            <p class="text-xs text-gray-400 mb-6 text-center">Enter your PIN to continue.</p>
+            
+            <input type="password" id="pin-input" maxlength="6" placeholder="Enter PIN" class="w-full bg-[#0a0a0c] border border-[#22222c] text-white text-center text-sm tracking-widest px-4 py-3 rounded-xl mb-4 focus:outline-none focus:border-blue-500 transition-all">
+            
+            <button id="pin-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs py-3 rounded-lg transition-all active:scale-[0.98] mb-3">Unlock</button>
+            
+            <button onclick="resetVaultData()" class="text-[11px] text-gray-500 hover:text-gray-300 transition-colors">Forgot PIN / Reset</button>
+        </div>
+    </div>
+
+    <!-- 2. Onboarding Screen (First-time setup) -->
+    <div id="onboard-screen" class="fixed inset-0 z-50 bg-[#0a0a0c]/90 backdrop-blur-xl flex flex-col items-center justify-center p-4 hidden animate-fade-in">
+        <div class="bg-[#121217] border border-[#22222c] p-7 rounded-2xl w-full max-w-md shadow-2xl transition-all duration-300">
+            <div class="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-4 shadow-inner">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            
+            <!-- Step 1 -->
+            <div id="onboard-step-1">
+                <h2 class="text-base font-semibold text-white mb-1">Set up Flash</h2>
+                <p class="text-xs text-gray-400 mb-6">Choose a PIN to protect your browser and bookmarks.</p>
+                
+                <label class="block text-[11px] font-medium text-gray-300 mb-2">Create Security PIN</label>
+                <input type="password" id="setup-pin" maxlength="6" placeholder="Enter secure PIN" class="w-full bg-[#0a0a0c] border border-[#22222c] text-white text-xs px-4 py-3 rounded-xl mb-6 focus:outline-none focus:border-blue-500 transition-all">
+                
+                <button onclick="nextOnboardStep(2)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs py-3 rounded-lg transition-all active:scale-[0.98]">Continue</button>
+            </div>
+
+            <!-- Step 2 -->
+            <div id="onboard-step-2" class="hidden">
+                <h2 class="text-sm font-bold text-white mb-1">Import Existing Bookmarks</h2>
+                <p class="text-[11px] text-gray-400 mb-6">Import an HTML bookmarks file or a Flash JSON backup now, or skip and add bookmarks manually later.</p>
+                
+                <div class="border-2 border-dashed border-[#22222c] hover:border-blue-500/50 rounded-2xl p-6 text-center mb-6 transition-all cursor-pointer relative group">
+                    <input type="file" accept=".html,.json,application/json,text/html" onchange="handleBookmarkImport(event)" class="absolute inset-0 opacity-0 cursor-pointer">
+                    <div class="w-10 h-10 mx-auto mb-2 rounded-xl bg-[#1a1a22] border border-[#22222c] flex items-center justify-center text-gray-300 group-hover:scale-110 transition-transform">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    </div>
+                    <span class="text-xs font-medium text-white block mb-1">Click to upload bookmark HTML file</span>
+                        <span class="text-[10px] text-gray-500">Supports browser HTML exports and Flash JSON backups</span>
+                </div>
+
+                <button onclick="completeOnboarding()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs py-3 rounded-xl transition-all shadow-lg hover:shadow-blue-500/25 active:scale-[0.98]">Complete Setup ⚡</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Main App Container -->
+    <div id="app-screen" class="hidden flex flex-col min-h-screen animate-fade-in">
+        
+        <!-- Navigation Header -->
+        <nav id="nav-menu" class="hidden flex items-center justify-between px-6 py-3 border-b border-[#22222c] bg-[#121217]/70 backdrop-blur-xl sticky top-0 z-40 transition-all">
+            <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="text-xs font-bold tracking-wider text-white uppercase">Flash</span>
+            </div>
+            <div class="flex items-center space-x-1 bg-[#0a0a0c] p-1 border border-[#22222c] rounded-xl">
+                <button onclick="switchTab('home')" id="tab-home" class="px-3 py-1.5 rounded-lg bg-[#22222c] text-white transition-all text-xs font-medium">Home</button>
+                <button onclick="showBrowser()" id="tab-browser" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-all text-xs font-medium">Browser</button>
+                <button onclick="switchTab('bookmarks')" id="tab-bookmarks" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-all text-xs font-medium">Bookmarks</button>
+                <button onclick="switchTab('add')" id="tab-add" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-all text-xs font-medium">+ Add</button>
+                <button onclick="switchTab('settings')" id="tab-settings" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-all text-xs font-medium">Settings</button>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="togglePrivacyBlur()" id="privacy-toggle-btn" class="bg-[#121217] hover:bg-[#1a1a22] border border-[#22222c] text-gray-400 hover:text-white text-xs px-3 py-2 rounded-xl transition-all flex items-center space-x-1.5" title="Toggle NSFW Blur">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                    <span id="privacy-btn-text" class="text-[11px]">Blur: Off</span>
+                </button>
+                <button onclick="openBrowser()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3.5 py-2 rounded-xl font-medium transition-all shadow-lg hover:shadow-blue-500/25 active:scale-95 flex items-center space-x-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                    <span>Open Browser</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- View 1: Home Dashboard (News & Stuff Feed) -->
+        <main id="view-home" class="flex-grow p-6 max-w-7xl mx-auto w-full space-y-6 animate-fade-in">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-sm font-bold text-white tracking-tight">Flash Feed & News</h1>
+                    <p class="text-[11px] text-gray-400">Your custom dashboard feed, tech updates, and quick widgets.</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="openBrowser('https://news.ycombinator.com')" class="bg-[#121217] hover:bg-[#1a1a22] border border-[#22222c] text-xs text-gray-200 px-3.5 py-2 rounded-xl transition-all flex items-center space-x-1.5 active:scale-95">
+                        <svg class="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+                        <span>Hacker News</span>
+                    </button>
+                    <button onclick="openBrowser('https://github.com/trending')" class="bg-[#121217] hover:bg-[#1a1a22] border border-[#22222c] text-xs text-gray-200 px-3.5 py-2 rounded-xl transition-all flex items-center space-x-1.5 active:scale-95">
+                        <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                        <span>GitHub Trending</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Feed / Widgets Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Widget 1: Quick Browser Launcher -->
+                <div class="bg-[#121217] border border-[#22222c] p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                        </div>
+                        <h2 class="text-sm font-bold text-white mb-1">Chromium Sandbox Browser</h2>
+                        <p class="text-[11px] text-gray-400">Launch a secure isolated browser window with full video playback and navigation support.</p>
+                    </div>
+                    <button onclick="openBrowser()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs py-2.5 rounded-xl transition-all shadow-lg hover:shadow-blue-500/25 active:scale-[0.98]">Open Browser Session</button>
+                </div>
+
+                <!-- Widget 2: Quick Vault Statistics -->
+                <div class="bg-[#121217] border border-[#22222c] p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        </div>
+                        <h2 class="text-sm font-bold text-white mb-1">Vault Status</h2>
+                        <p class="text-[11px] text-gray-400">Your secure storage environment is active and encrypted with a local PIN.</p>
+                    </div>
+                    <div class="pt-4 border-t border-[#22222c] flex items-center justify-between text-xs text-gray-300">
+                        <span>Protected Vault</span>
+                        <span class="text-emerald-400 font-medium flex items-center space-x-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+                            <span>Secure</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Widget 3: Quick Links / Shortcuts -->
+                <div class="bg-[#121217] border border-[#22222c] p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-emerald-600/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        </div>
+                        <h2 class="text-sm font-bold text-white mb-1">Quick Portals</h2>
+                        <p class="text-[11px] text-gray-400">Fast access to commonly visited media and information networks.</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="openBrowser('https://www.youtube.com')" class="bg-[#0a0a0c] hover:bg-[#1a1a22] border border-[#22222c] text-[11px] text-gray-200 py-2 rounded-xl transition-all">YouTube</button>
+                        <button onclick="openBrowser('https://github.com')" class="bg-[#0a0a0c] hover:bg-[#1a1a22] border border-[#22222c] text-[11px] text-gray-200 py-2 rounded-xl transition-all">GitHub</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- View 2: In-App Browser -->
+        <section id="view-browser" class="hidden flex-grow min-h-0 flex flex-col p-4 gap-3 animate-fade-in">
+            <div class="flex items-center gap-2 overflow-x-auto border-b border-[#22222c] pb-2" id="browser-tabs">
+                <button onclick="createBrowserTab('https://www.google.com')" class="flex-shrink-0 bg-[#121217] border border-[#22222c] text-gray-300 hover:text-white w-8 h-8 rounded-lg text-sm" title="New tab" aria-label="New browser tab">+</button>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="browser-back" onclick="browserGoBack()" disabled class="bg-[#121217] border border-[#22222c] text-gray-300 disabled:opacity-40 px-3 py-2 rounded-lg text-xs" title="Back">Back</button>
+                <button id="browser-forward" onclick="browserGoForward()" disabled class="bg-[#121217] border border-[#22222c] text-gray-300 disabled:opacity-40 px-3 py-2 rounded-lg text-xs" title="Forward">Forward</button>
+                <button onclick="browserReload()" class="bg-[#121217] border border-[#22222c] text-gray-300 px-3 py-2 rounded-lg text-xs" title="Reload">Reload</button>
+                <button onclick="saveCurrentBookmark()" class="bg-[#121217] border border-[#22222c] text-gray-300 hover:text-white px-3 py-2 rounded-lg text-xs" title="Save bookmark (Ctrl+D)">Save</button>
+                <input id="browser-url-input" type="text" onkeydown="if(event.key === 'Enter') navigateBrowserFromInput()" placeholder="Enter a website address" class="flex-grow min-w-0 bg-[#121217] border border-[#22222c] text-xs text-white px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-500">
+                <button onclick="navigateBrowserFromInput()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2.5 rounded-lg">Go</button>
+            </div>
+            <div id="browser-webviews" class="flex-grow min-h-0 overflow-hidden rounded-lg border border-[#22222c] bg-white">
+            </div>
+        </section>
+
+        <!-- View 3: Bookmarks Tab -->
+        <div id="view-bookmarks" class="hidden flex-grow p-6 max-w-4xl mx-auto w-full space-y-4 animate-fade-in">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+                <div>
+                    <h2 class="text-sm font-bold text-white">Saved Bookmarks List</h2>
+                    <p class="text-[11px] text-gray-400">Manage, organize, and open all your imported or saved bookmarks directly.</p>
+                </div>
+                <div class="w-full sm:w-64">
+                    <input type="text" id="search-input" oninput="renderBookmarks()" placeholder="Search bookmarks..." class="w-full bg-[#121217] border border-[#22222c] text-xs text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-blue-500 transition-all">
+                </div>
+            </div>
+            <div id="bookmarks-container" class="space-y-2">
+                <!-- Bookmark items injected dynamically via renderer.js -->
+            </div>
+        </div>
+
+        <!-- View 3: Add New Flash -->
+        <div id="view-add" class="hidden flex-grow p-6 max-w-lg mx-auto w-full flex items-center justify-center animate-fade-in">
+            <div class="bg-[#121217] border border-[#22222c] p-8 rounded-3xl w-full shadow-2xl space-y-4">
+                <div>
+                    <h2 class="text-sm font-bold text-white mb-1">Add New Flash</h2>
+                    <p class="text-[11px] text-gray-400">Save a new link or video into your vault.</p>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-300 mb-1.5">Title / Name</label>
+                    <input type="text" id="url-name" placeholder="e.g. Favorite Clip" class="w-full bg-[#0a0a0c] border border-[#22222c] text-xs text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-blue-500 transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-300 mb-1.5">URL / Link</label>
+                    <input type="text" id="url-link" placeholder="https://..." class="w-full bg-[#0a0a0c] border border-[#22222c] text-xs text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-blue-500 transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-300 mb-1.5">Tags (optional)</label>
+                    <input type="text" id="url-tags" placeholder="e.g. streams, music, nsfw" class="w-full bg-[#0a0a0c] border border-[#22222c] text-xs text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-blue-500 transition-all">
+                </div>
+
+                <div class="pt-2 flex items-center space-x-3">
+                    <button onclick="saveUrl()" class="flex-grow bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs py-2.5 rounded-xl transition-all shadow-lg hover:shadow-blue-500/25 active:scale-[0.98]">Save Flash</button>
+                    <button onclick="switchTab('home')" class="bg-[#1a1a22] border border-[#22222c] text-gray-300 hover:text-white text-xs px-4 py-2.5 rounded-xl transition-all">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- View 4: Settings -->
+        <div id="view-settings" class="hidden flex-grow p-6 max-w-xl mx-auto w-full space-y-6 animate-fade-in">
+            <div>
+                <h2 class="text-sm font-bold text-white">Vault Settings</h2>
+                <p class="text-[11px] text-gray-400">Manage security, privacy hotkeys, storage stats, and backups.</p>
+            </div>
+
+            <div class="bg-[#121217] border border-[#22222c] p-6 rounded-2xl space-y-4 shadow-xl">
+                <div>
+                    <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Search</h3>
+                    <p class="text-[10px] text-gray-500 mt-1">Combine a few preferences into a search.</p>
+                </div>
+                <button onclick="openSearchModal()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2.5 rounded-xl font-medium transition-all">Choose your search</button>
+            </div>
+
+            <!-- Security & Lock Settings -->
+            <div class="bg-[#121217] border border-[#22222c] p-6 rounded-2xl space-y-4 shadow-xl">
+                <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Security & Access</h3>
+                
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-white block">Enable PIN Protection</span>
+                        <span class="text-[10px] text-gray-500">Require PIN code on startup</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-pin-toggle" onchange="togglePinRequirement()" class="sr-only peer">
+                        <div class="w-9 h-5 bg-[#0a0a0c] border border-[#22222c] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 peer-checked:after:bg-white"></div>
+                    </label>
+                </div>
+
+                <div class="pt-2 border-t border-[#22222c]">
+                    <label class="block text-[11px] font-medium text-gray-300 mb-1.5">Auto-Lock Inactivity Timeout</label>
+                    <select id="setting-timeout" onchange="updateTimeoutSetting()" class="w-full bg-[#0a0a0c] border border-[#22222c] text-xs text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-blue-500 transition-all">
+                        <option value="0">Never Lock</option>
+                        <option value="300000">5 Minutes</option>
+                        <option value="900000">15 Minutes</option>
+                        <option value="1800000">30 Minutes</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 border-t border-[#22222c]">
+                    <label class="block text-[11px] font-medium text-gray-300 mb-1.5">Change PIN Code</label>
+                    <div class="flex space-x-2">
+                        <input type="password" id="new-pin" maxlength="6" placeholder="New PIN" class="flex-grow bg-[#0a0a0c] border border-[#22222c] text-xs text-white px-3.5 py-2 rounded-xl focus:outline-none focus:border-blue-500 transition-all">
+                        <button onclick="updatePin()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-xl font-medium transition-all shadow-lg hover:shadow-blue-500/25 active:scale-95">Update</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Privacy & NSFW Blur Settings -->
+            <div class="bg-[#121217] border border-[#22222c] p-6 rounded-2xl space-y-4 shadow-xl">
+                <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Privacy & NSFW Blur</h3>
+                
+                <div>
+                    <label class="block text-[11px] font-medium text-gray-300 mb-1.5">Privacy Blur Hotkey Shortcut</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="setting-hotkey" readonly placeholder="Click to record keybind" onclick="recordHotkey(event)" class="flex-grow bg-[#0a0a0c] border border-[#22222c] text-xs text-white px-3.5 py-2 rounded-xl focus:outline-none focus:border-blue-500 transition-all cursor-pointer font-mono">
+                        <button onclick="clearHotkey()" class="bg-[#1a1a22] border border-[#22222c] text-xs text-gray-300 hover:text-white px-3 py-2 rounded-xl transition-all">Clear</button>
+                    </div>
+                    <span class="text-[10px] text-gray-500 mt-1.5 block">Press this key combination anywhere in the app to instantly toggle strong blur on sensitive or NSFW bookmarks.</span>
+                </div>
+            </div>
+
+            <!-- Storage Statistics -->
+            <div class="bg-[#121217] border border-[#22222c] p-6 rounded-2xl space-y-4 shadow-xl">
+                <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Storage & Usage</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-[#0a0a0c] border border-[#22222c] p-4 rounded-xl">
+                        <span class="text-[10px] text-gray-500 uppercase font-medium block mb-1">Saved Items</span>
+                        <span id="stat-items-count" class="text-sm font-bold text-white">0</span>
+                    </div>
+                    <div class="bg-[#0a0a0c] border border-[#22222c] p-4 rounded-xl">
+                        <span class="text-[10px] text-gray-500 uppercase font-medium block mb-1">Storage Used</span>
+                        <span id="stat-storage-size" class="text-sm font-bold text-white">0 KB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data & Bookmarks -->
+            <div class="bg-[#121217] border border-[#22222c] p-6 rounded-2xl space-y-4 shadow-xl">
+                <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Data & Bookmarks</h3>
+
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-white block">Export Flash Backup</span>
+                        <span class="text-[10px] text-gray-500">Save bookmarks with tags and Flash data as JSON</span>
+                    </div>
+                    <button onclick="exportFlashBackup()" class="bg-blue-600 hover:bg-blue-500 text-xs text-white px-3.5 py-2 rounded-xl transition-all active:scale-95 font-medium">Export JSON</button>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-white block">Export Bookmarks File</span>
+                        <span class="text-[10px] text-gray-500">Download vault links as standard HTML</span>
+                    </div>
+                    <button onclick="exportBookmarks()" class="bg-[#1a1a22] border border-[#22222c] hover:bg-[#22222c] text-xs text-gray-200 px-3.5 py-2 rounded-xl transition-all active:scale-95 font-medium">Export HTML</button>
+                </div>
+
+                <div class="pt-2 border-t border-[#22222c] flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-white block">Import Bookmarks File</span>
+                        <span class="text-[10px] text-gray-500">Upload browser HTML exports or Flash JSON backups</span>
+                    </div>
+                    <label class="bg-[#1a1a22] border border-[#22222c] hover:bg-[#22222c] text-xs text-gray-200 px-3.5 py-2 rounded-xl cursor-pointer transition-all active:scale-95 font-medium">
+                        Browse File
+                        <input type="file" accept=".html,.json,application/json,text/html" onchange="handleBookmarkImport(event)" class="hidden">
+                    </label>
+                </div>
+                
+                <div class="pt-2 border-t border-[#22222c] flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-red-400 block">Wipe All Vault Data</span>
+                        <span class="text-[10px] text-gray-500">Deletes all saved links and resets PIN</span>
+                    </div>
+                    <button onclick="clearData()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs px-3 py-2 rounded-xl transition-all font-medium active:scale-95">Reset Vault</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Import Modal Selector -->
+    <div id="import-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl hidden flex items-center justify-center p-4 animate-fade-in">
+        <div class="bg-[#121217] border border-[#22222c] w-full max-w-xl rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[80vh]">
+            <div class="px-5 py-4 border-b border-[#22222c] flex items-center justify-between bg-[#181822]">
+                <h3 class="text-xs font-semibold text-white">Select Bookmarks to Import</h3>
+                <button onclick="closeImportModal()" class="text-gray-400 hover:text-white text-xs">✕</button>
+            </div>
+            <div id="import-list" class="p-4 overflow-y-auto space-y-2 flex-grow max-h-[50vh]">
+                <!-- Checkboxes populated dynamically -->
+            </div>
+            <div class="px-5 py-4 border-t border-[#22222c] bg-[#181822] flex justify-end space-x-2">
+                <button onclick="closeImportModal()" class="text-xs text-gray-400 hover:text-white px-4 py-2">Cancel</button>
+                <button onclick="confirmImport()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-xl font-medium shadow-lg hover:shadow-blue-500/25 transition-all">Import Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="search-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl hidden items-center justify-center p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="search-modal-title">
+        <div class="bg-[#121217] border border-[#22222c] w-full max-w-xl rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh]">
+            <div class="px-5 py-4 border-b border-[#22222c] flex items-center justify-between bg-[#181822]">
+                <h3 id="search-modal-title" class="text-xs font-semibold text-white">What do you want to find today?</h3>
+                <button onclick="closeSearchModal()" class="text-gray-400 hover:text-white text-xs" aria-label="Close search preferences">✕</button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-4">
+                <label class="block text-[11px] font-medium text-gray-300">Type of Content
+                    <select class="search-preference mt-1.5 w-full bg-[#0a0a0c] border border-[#22222c] text-xs text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-blue-500" data-label="color">
+                        <option value="">Any</option><option>Nudes</option><option>Masturbation</option><option>Fucking</option><option>Public Masturbation</option>
+                    </select>
+                </label>
+                <label class="block text-[11px] font-medium text-gray-300">Vaginal Area
+                    <select class="search-preference mt-1.5 w-full bg-[#0a0a0c] border border-[#22222c] text-xs text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-blue-500" data-label="snack">
+                        <option value="">Any</option><option>Shaved Pussy</option><option>Non-Shaved Pussy</option><option>Wet Pussy</option>
+                    </select>
+                </label>
+                <label class="block text-[11px] font-medium text-gray-300">Type of Fluids
+                    <select class="search-preference mt-1.5 w-full bg-[#0a0a0c] border border-[#22222c] text-xs text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-blue-500" data-label="drink">
+                        <option value="">Any</option><option>Squirting</option><option>Non-Squirting</option><option>Creampie</option>
+                    </select>
+                </label>
+                <label class="block text-[11px] font-medium text-gray-300">Ethnicity
+                    <select class="search-preference mt-1.5 w-full bg-[#0a0a0c] border border-[#22222c] text-xs text-white px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-blue-500">
+                        <option value="">Any</option><option>Chinese</option><option>Asian</option><option>Latina</option><option>White</option><option>Japanese</option>
+                    </select>
+                </label>
+                <div class="pt-3 border-t border-[#22222c]">
+                    <span class="text-[10px] text-gray-500 block mb-1">Search query</span>
+                    <p id="search-query-preview" class="text-xs text-gray-200 min-h-4">Select preferences to build a query.</p>
+                </div>
+            </div>
+            <div class="px-5 py-4 border-t border-[#22222c] bg-[#181822] flex justify-end gap-2">
+                <button onclick="closeSearchModal()" class="text-xs text-gray-400 hover:text-white px-4 py-2">Cancel</button>
+                <button onclick="runPreferenceSearch()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-xl font-medium transition-all">Search</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Integration -->
+    <script src="renderer.js"></script>
+</body>
+</html>
